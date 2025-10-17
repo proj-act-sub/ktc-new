@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  role      String   @default("participant")
+  createdAt DateTime @default(now())
+
+  // Events this user created (one-to-many)
+  events Event[] @relation("createdEvents")
+
+  // Comments authored by this user
+  comments Comment[]
+}
+
+model Event {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  college     String?
+  description String
+  date        DateTime
+  location    String?
+  type        String?
+  image       String?
+  capacity    Int?
+  attendees   Attendee[]
+  comments    Comment[]
+  createdBy   String? // foreign key column referencing User.id
+  createdAt   DateTime   @default(now())
+
+  // Relation back to the user who created the event
+  creator User? @relation("createdEvents", fields: [createdBy], references: [id])
+}
+
+model Attendee {
+  id        String   @id @default(cuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  email     String
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  role      String    @default("participant") // 'participant' | 'organizer' | 'admin'
+  createdBy String?
+  usedBy    String?
+  usedAt    DateTime?
+  revoked   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  name      String? // for anonymous or external users
+  text      String
+  createdAt DateTime @default(now())
+}
